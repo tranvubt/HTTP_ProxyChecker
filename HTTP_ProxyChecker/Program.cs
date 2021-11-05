@@ -9,6 +9,9 @@ namespace HTTP_ProxyChecker
     class Program
     {
         static IAPI proxyCheckerAPI;
+        static List<string> proxiesList = new List<string>();
+        static List<string> WorkingProxies = new List<string>();
+        static List<string> NonWorkingProxies = new List<string>();
 
         static void Main(string[] args)
         {
@@ -17,9 +20,10 @@ namespace HTTP_ProxyChecker
             Console.WriteLine("Enter the file path HTTP proxy");
             filePath = Console.ReadLine();
             Console.WriteLine("Ok wait me!");
-            List<string> proxiesList = File.ReadAllLines(filePath).ToList();
+            proxiesList = File.ReadAllLines(filePath).ToList();
 
             proxyCheckerAPI = API.CreateBuilder().SetProxyList(proxiesList)
+                .SetMaxParallelTask(50)
                 .Build();
 
             proxyCheckerAPI.ProxyListWorked.CollectionChanged += ProxyListWorked_CollectionChanged;
@@ -34,10 +38,19 @@ namespace HTTP_ProxyChecker
             if (lastElement != null)
             {
                 if (lastElement.proxyStatus != ProxyCheckerLib.Enums.ProxyStatus.Dead)
-                    Console.ForegroundColor = ConsoleColor.Green;                    
+                {
+                    WorkingProxies.Add($"{lastElement.Address}:{lastElement.Port}");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"{lastElement.Address}:{lastElement.Port}, Level:{lastElement.proxyAnonymous}, Country: {lastElement.Country}, Time: {lastElement.Time}ms");
+                    Console.Title = $"HTTP Proxy Checker | Loaded: {proxiesList.Count} proxies | Working proxies: {WorkingProxies.Count} | Dead proxies: {NonWorkingProxies.Count}";
+                }
                 else
+                {
+                    NonWorkingProxies.Add($"{lastElement.Address}:{lastElement.Port}");
                     Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"{lastElement.Address}:{lastElement.Port}, Level:{lastElement.proxyAnonymous}, Country: {lastElement.Country}, Time: {lastElement.Time}ms");
+                    Console.WriteLine($"{lastElement.Address}:{lastElement.Port}, Level:{lastElement.proxyAnonymous}, Country: {lastElement.Country}, Time: {lastElement.Time}ms");
+                    Console.Title = $"HTTP Proxy Checker | Loaded: {proxiesList.Count} proxies | Working proxies: {WorkingProxies.Count} | Dead proxies: {NonWorkingProxies.Count}";
+                }                
             }
         }
     }
